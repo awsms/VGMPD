@@ -493,6 +493,12 @@ Supports Nintendo 64 :file:`*.miniusf` files.
    * - **sample_rate**
      - Resample output to this sample rate. Default is 0 (native rate).
 
+upse
+----
+
+PlayStation Sound Format decoder based on `UPSE <https://github.com/nenolod/upse>`_.
+Supports :file:`*.psf`, :file:`*.minipsf`, :file:`*.psf2` and :file:`*.minipsf2`.
+
 mad
 ---
 

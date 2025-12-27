@@ -23,6 +23,7 @@
 #include "plugins/FfmpegDecoderPlugin.hxx"
 #include "plugins/GmeDecoderPlugin.hxx"
 #include "plugins/LazyusfDecoderPlugin.hxx"
+#include "plugins/UpseDecoderPlugin.hxx"
 #include "plugins/VgmstreamDecoderPlugin.hxx"
 #include "plugins/FaadDecoderPlugin.hxx"
 #include "plugins/MadDecoderPlugin.hxx"
@@ -99,6 +100,9 @@ constinit const struct DecoderPlugin *const decoder_plugins[] = {
 #endif
 #ifdef ENABLE_LAZYUSF
 	&lazyusf_decoder_plugin,
+#endif
+#ifdef ENABLE_UPSE
+	&upse_decoder_plugin,
 #endif
 #ifdef ENABLE_VGMSTREAM
 	&vgmstream_decoder_plugin,
