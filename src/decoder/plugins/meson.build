@@ -88,6 +88,14 @@ if libgme_dep.found()
   decoder_plugins_sources += 'GmeDecoderPlugin.cxx'
 endif
 
+lazyusf_dep = c_compiler.find_library('lazyusf', required: get_option('lazyusf'))
+psflib_dep = c_compiler.find_library('psflib', required: get_option('lazyusf'))
+lazyusf_found = lazyusf_dep.found() and psflib_dep.found()
+decoder_features.set('ENABLE_LAZYUSF', lazyusf_found)
+if lazyusf_found
+  decoder_plugins_sources += 'LazyusfDecoderPlugin.cxx'
+endif
+
 vgmstream_dep = c_compiler.find_library('vgmstream', required: get_option('vgmstream'))
 decoder_features.set('ENABLE_VGMSTREAM', vgmstream_dep.found())
 if vgmstream_dep.found()
@@ -183,6 +191,8 @@ decoder_plugins = static_library(
     libaudiofile_dep,
     libfaad_dep,
     libgme_dep,
+    lazyusf_dep,
+    psflib_dep,
     vgmstream_dep,
     libmad_dep,
     libmikmod_dep,
