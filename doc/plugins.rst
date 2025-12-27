@@ -476,6 +476,23 @@ Video game music file emulator based on `game-music-emu <https://bitbucket.org/m
    * - **default_fade**
      - The default fade-out time, in seconds. Used by songs that don't specify their own fade-out time.
 
+lazyusf
+-------
+
+USF decoder based on `lazyusf2 <https://bitbucket.org/losnoco/lazyusf2>`_.
+Supports Nintendo 64 :file:`*.miniusf` files.
+
+.. list-table::
+   :widths: 20 80
+   :header-rows: 1
+
+   * - Setting
+     - Description
+   * - **hle yes|no**
+     - Enable high-level emulation (faster, less accurate). Default is yes.
+   * - **sample_rate**
+     - Resample output to this sample rate. Default is 0 (native rate).
+
 mad
 ---
 
