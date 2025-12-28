@@ -89,8 +89,9 @@ if libgme_dep.found()
   decoder_plugins_sources += 'GmeDecoderPlugin.cxx'
 endif
 
+psflib_required = get_option('lazyusf').enabled() or get_option('aopsf').enabled()
+psflib_dep = c_compiler.find_library('psflib', required: psflib_required)
 lazyusf_dep = c_compiler.find_library('lazyusf', required: get_option('lazyusf'))
-psflib_dep = c_compiler.find_library('psflib', required: get_option('lazyusf'))
 lazyusf_found = lazyusf_dep.found() and psflib_dep.found()
 decoder_features.set('ENABLE_LAZYUSF', lazyusf_found)
 if lazyusf_found
@@ -115,21 +116,28 @@ if lazygsf_found
   ]
 endif
 
-upse_dep = c_compiler.find_library('upse', required: get_option('upse'))
-upse_found = upse_dep.found()
-if upse_found and not zlib_dep.found()
-  if get_option('upse').enabled()
-    error('upse requires zlib')
+aopsf_dep = c_compiler.find_library('aopsf', required: get_option('aopsf'))
+aopsf_found = aopsf_dep.found()
+if aopsf_found and not psflib_dep.found()
+  if get_option('aopsf').enabled()
+    error('aopsf requires psflib')
   else
-    upse_found = false
+    aopsf_found = false
   endif
 endif
-decoder_features.set('ENABLE_UPSE', upse_found)
-if upse_found
-  decoder_plugins_sources += 'UpseDecoderPlugin.cxx'
+if aopsf_found and not zlib_dep.found()
+  if get_option('aopsf').enabled()
+    error('aopsf requires zlib')
+  else
+    aopsf_found = false
+  endif
+endif
+decoder_features.set('ENABLE_AOPSF', aopsf_found)
+if aopsf_found
+  decoder_plugins_sources += 'AopsfDecoderPlugin.cxx'
   decoder_plugins_dependencies += [
-    upse_dep,
-    zlib_dep,
+    aopsf_dep,
+    psflib_dep,
   ]
 endif
 
@@ -230,8 +238,8 @@ decoder_plugins = static_library(
     libgme_dep,
     lazygsf_dep,
     lazyusf_dep,
+    aopsf_dep,
     psflib_dep,
-    upse_dep,
     vgmstream_dep,
     libmad_dep,
     libmikmod_dep,
