@@ -508,11 +508,12 @@ Supports :file:`*.gsf` and :file:`*.minigsf`.
    * - **sample_rate**
      - Resample output to this sample rate. Default is 44100.
 
-upse
-----
+aopsf
+-----
 
-PlayStation Sound Format decoder based on `UPSE <https://github.com/nenolod/upse>`_.
-Supports :file:`*.psf`, :file:`*.minipsf`, :file:`*.psf2` and :file:`*.minipsf2`.
+PlayStation Sound Format decoder based on AOPSF (PSF1/PSF2 emulation) with
+psflib's psf2fs for container parsing. Supports :file:`*.psf`,
+:file:`*.minipsf`, :file:`*.psf2` and :file:`*.minipsf2`.
 
 mad
 ---
