@@ -533,8 +533,6 @@ aopsf_file_decode(DecoderClient &client, Path path_fs)
 }
 
 static const char *const aopsf_suffixes[] = {
-	"psf",
-	"minipsf",
 	"psf2",
 	"minipsf2",
 	nullptr
