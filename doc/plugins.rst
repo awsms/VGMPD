@@ -493,6 +493,21 @@ Supports Nintendo 64 :file:`*.miniusf` files.
    * - **sample_rate**
      - Resample output to this sample rate. Default is 0 (native rate).
 
+lazygsf
+-------
+
+GSF decoder based on `lazygsf <https://github.com/jprjr/lazygsf>`_.
+Supports :file:`*.gsf` and :file:`*.minigsf`.
+
+.. list-table::
+   :widths: 20 80
+   :header-rows: 1
+
+   * - Setting
+     - Description
+   * - **sample_rate**
+     - Resample output to this sample rate. Default is 44100.
+
 upse
 ----
 
