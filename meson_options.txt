@@ -137,7 +137,7 @@ option('fluidsynth', type: 'feature', description: 'fluidsynth MIDI decoder plug
 option('gme', type: 'feature', description: 'Game Music Emulator decoder plugin')
 option('lazyusf', type: 'feature', description: 'LazyUSF decoder plugin')
 option('lazygsf', type: 'feature', description: 'LazyGSF decoder plugin')
-option('upse', type: 'feature', description: 'UPSE decoder plugin')
+option('aopsf', type: 'feature', description: 'AOPSF decoder plugin')
 option('mad', type: 'feature', description: 'MP3 decoder using libmad')
 option('mikmod', type: 'feature', description: 'MikMod decoder plugin')
 option('modplug', type: 'feature', description: 'Modplug decoder plugin')
