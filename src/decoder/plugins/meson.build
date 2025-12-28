@@ -97,6 +97,24 @@ if lazyusf_found
   decoder_plugins_sources += 'LazyusfDecoderPlugin.cxx'
 endif
 
+lazygsf_dep = c_compiler.find_library('lazygsf', required: get_option('lazygsf'))
+lazygsf_found = lazygsf_dep.found()
+if lazygsf_found and not zlib_dep.found()
+  if get_option('lazygsf').enabled()
+    error('lazygsf requires zlib')
+  else
+    lazygsf_found = false
+  endif
+endif
+decoder_features.set('ENABLE_LAZYGSF', lazygsf_found)
+if lazygsf_found
+  decoder_plugins_sources += 'LazygsfDecoderPlugin.cxx'
+  decoder_plugins_dependencies += [
+    lazygsf_dep,
+    zlib_dep,
+  ]
+endif
+
 upse_dep = c_compiler.find_library('upse', required: get_option('upse'))
 upse_found = upse_dep.found()
 if upse_found and not zlib_dep.found()
@@ -210,6 +228,7 @@ decoder_plugins = static_library(
     libaudiofile_dep,
     libfaad_dep,
     libgme_dep,
+    lazygsf_dep,
     lazyusf_dep,
     psflib_dep,
     upse_dep,
