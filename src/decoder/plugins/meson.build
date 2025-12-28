@@ -141,6 +141,24 @@ if aopsf_found
   ]
 endif
 
+upse_dep = c_compiler.find_library('upse', required: get_option('upse'))
+upse_found = upse_dep.found()
+if upse_found and not zlib_dep.found()
+  if get_option('upse').enabled()
+    error('upse requires zlib')
+  else
+    upse_found = false
+  endif
+endif
+decoder_features.set('ENABLE_UPSE', upse_found)
+if upse_found
+  decoder_plugins_sources += 'UpseDecoderPlugin.cxx'
+  decoder_plugins_dependencies += [
+    upse_dep,
+    zlib_dep,
+  ]
+endif
+
 vgmstream_dep = c_compiler.find_library('vgmstream', required: get_option('vgmstream'))
 decoder_features.set('ENABLE_VGMSTREAM', vgmstream_dep.found())
 if vgmstream_dep.found()
@@ -240,6 +258,7 @@ decoder_plugins = static_library(
     lazyusf_dep,
     aopsf_dep,
     psflib_dep,
+    upse_dep,
     vgmstream_dep,
     libmad_dep,
     libmikmod_dep,
