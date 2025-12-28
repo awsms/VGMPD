@@ -25,6 +25,7 @@
 #include "plugins/LazygsfDecoderPlugin.hxx"
 #include "plugins/LazyusfDecoderPlugin.hxx"
 #include "plugins/AopsfDecoderPlugin.hxx"
+#include "plugins/UpseDecoderPlugin.hxx"
 #include "plugins/VgmstreamDecoderPlugin.hxx"
 #include "plugins/FaadDecoderPlugin.hxx"
 #include "plugins/MadDecoderPlugin.hxx"
@@ -104,6 +105,9 @@ constinit const struct DecoderPlugin *const decoder_plugins[] = {
 #endif
 #ifdef ENABLE_LAZYGSF
 	&gsf_decoder_plugin,
+#endif
+#ifdef ENABLE_UPSE
+	&upse_decoder_plugin,
 #endif
 #ifdef ENABLE_AOPSF
 	&aopsf_decoder_plugin,

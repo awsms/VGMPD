@@ -511,9 +511,14 @@ Supports :file:`*.gsf` and :file:`*.minigsf`.
 aopsf
 -----
 
-PlayStation Sound Format decoder based on AOPSF (PSF1/PSF2 emulation) with
-psflib's psf2fs for container parsing. Supports :file:`*.psf`,
-:file:`*.minipsf`, :file:`*.psf2` and :file:`*.minipsf2`.
+PlayStation Sound Format decoder based on AOPSF with psflib's psf2fs for
+container parsing. Supports :file:`*.psf2` and :file:`*.minipsf2`.
+
+upse
+----
+
+PlayStation Sound Format decoder based on `UPSE <https://github.com/nenolod/upse>`_.
+Supports :file:`*.psf` and :file:`*.minipsf`.
 
 mad
 ---
