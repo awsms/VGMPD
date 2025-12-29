@@ -453,6 +453,8 @@ The following table lists the decoder options valid for all plugins:
      - The name of the plugin
    * - **enabled yes|no**
      - Allows you to disable a decoder plugin without recompiling. By default, all plugins are enabled.
+   * - **codecs**
+     - Comma- or space-separated list of filename suffixes; the decoder is tried first for these suffixes before other decoders.
 
 More information can be found in the :ref:`decoder_plugins` reference.
 
