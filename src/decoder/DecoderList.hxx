@@ -8,6 +8,7 @@
 #include "util/TerminatedArray.hxx"
 
 #include <string_view>
+#include <vector>
 
 struct ConfigData;
 struct DecoderPlugin;
@@ -71,3 +72,10 @@ decoder_plugins_find(F f) noexcept
 [[gnu::pure]]
 bool
 decoder_plugins_supports_suffix(std::string_view suffix) noexcept;
+
+/**
+ * Return decoder plugins ordered by per-suffix priority overrides.
+ */
+[[gnu::pure]]
+std::vector<const DecoderPlugin *>
+decoder_plugins_for_suffix(std::string_view suffix) noexcept;
