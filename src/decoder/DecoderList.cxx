@@ -40,11 +40,86 @@
 #include "plugins/SidplayDecoderPlugin.hxx"
 #include "Log.hxx"
 #include "PluginUnavailable.hxx"
+#include "util/CharUtil.hxx"
 
 #include <algorithm> // for std::any_of()
 #include <iterator>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include <string.h>
+
+static std::unordered_map<std::string, std::vector<const DecoderPlugin *>>
+decoder_codec_priorities;
+
+static std::vector<std::string>
+ParseCodecList(const char *value)
+{
+	std::vector<std::string> result;
+	if (value == nullptr)
+		return result;
+
+	std::string_view s{value};
+	std::size_t i = 0;
+
+	while (i < s.size()) {
+		while (i < s.size() &&
+		       (s[i] == ',' || IsWhitespaceFast(s[i])))
+			++i;
+
+		if (i >= s.size())
+			break;
+
+		const std::size_t start = i;
+		while (i < s.size() &&
+		       s[i] != ',' &&
+		       !IsWhitespaceFast(s[i]))
+			++i;
+
+		if (i > start) {
+			std::string token;
+			token.reserve(i - start);
+			for (std::size_t j = start; j < i; ++j)
+				token.push_back(ToLowerASCII(s[j]));
+
+			if (!token.empty())
+				result.push_back(std::move(token));
+		}
+	}
+
+	return result;
+}
+
+static void
+BuildDecoderCodecPriorities(const ConfigData &config) noexcept
+{
+	decoder_codec_priorities.clear();
+
+	config.WithEach(ConfigBlockOption::DECODER, [&](const ConfigBlock &block){
+		const char *plugin_name = block.GetBlockValue("plugin", nullptr);
+		if (plugin_name == nullptr)
+			return;
+
+		const auto *plugin = decoder_plugin_from_name(plugin_name);
+		if (plugin == nullptr) {
+			FmtWarning(decoder_domain,
+				   "Ignoring decoder codecs override for {:?}: plugin not enabled",
+				   plugin_name);
+			return;
+		}
+
+		const auto codecs = ParseCodecList(block.GetBlockValue("codecs", nullptr));
+		if (codecs.empty())
+			return;
+
+		for (const auto &codec : codecs) {
+			auto &list = decoder_codec_priorities[codec];
+			if (std::find(list.begin(), list.end(), plugin) == list.end())
+				list.push_back(plugin);
+		}
+	});
+}
 
 constinit const struct DecoderPlugin *const decoder_plugins[] = {
 #ifdef ENABLE_MPG123
@@ -181,6 +256,8 @@ decoder_plugin_init_all(const ConfigData &config)
 							       plugin.name));
 		}
 	}
+
+	BuildDecoderCodecPriorities(config);
 }
 
 void
@@ -199,4 +276,29 @@ decoder_plugins_supports_suffix(std::string_view suffix) noexcept
 	}
 
 	return false;
+}
+
+std::vector<const DecoderPlugin *>
+decoder_plugins_for_suffix(std::string_view suffix) noexcept
+{
+	std::vector<const DecoderPlugin *> result;
+
+	if (!suffix.empty()) {
+		std::string key;
+		key.reserve(suffix.size());
+		for (const char ch : suffix)
+			key.push_back(ToLowerASCII(ch));
+
+		const auto i = decoder_codec_priorities.find(key);
+		if (i != decoder_codec_priorities.end())
+			result.insert(result.end(), i->second.begin(), i->second.end());
+	}
+
+	for (const auto &plugin : GetEnabledDecoderPlugins()) {
+		const auto *p = &plugin;
+		if (std::find(result.begin(), result.end(), p) == result.end())
+			result.push_back(p);
+	}
+
+	return result;
 }

@@ -445,8 +445,8 @@ TryContainerDecoder(DecoderBridge &bridge, Path path_fs,
 {
 	DecodeResult result = DecodeResult::NO_PLUGIN;
 
-	for (const auto &plugin : GetEnabledDecoderPlugins()) {
-		if (const auto r = TryContainerDecoder(bridge, path_fs, suffix, plugin);
+	for (const auto *plugin : decoder_plugins_for_suffix(suffix)) {
+		if (const auto r = TryContainerDecoder(bridge, path_fs, suffix, *plugin);
 		    r > result) {
 			result = r;
 			if (IsFinalDecodeResult(result))
@@ -492,8 +492,8 @@ decoder_run_file(DecoderBridge &bridge, const char *uri_utf8, Path path_fs)
 	MaybeLoadReplayGain(bridge, *input_stream);
 
 	DecodeResult result = DecodeResult::NO_PLUGIN;
-	for (const auto &plugin : GetEnabledDecoderPlugins()) {
-		if (const auto r = TryDecoderFile(bridge, path_fs, suffix, *input_stream, plugin);
+	for (const auto *plugin : decoder_plugins_for_suffix(suffix)) {
+		if (const auto r = TryDecoderFile(bridge, path_fs, suffix, *input_stream, *plugin);
 		    r > result) {
 			result = r;
 			if (IsFinalDecodeResult(result))
