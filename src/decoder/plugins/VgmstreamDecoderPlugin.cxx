@@ -17,6 +17,7 @@
 #include "tag/ParseName.hxx"
 #include "tag/ReplayGainParser.hxx"
 #include "util/Domain.hxx"
+#include "util/CharUtil.hxx"
 #include "util/DynamicFifoBuffer.hxx"
 #include "util/ScopeExit.hxx"
 #include "util/StringCompare.hxx"
@@ -324,7 +325,21 @@ VgmstreamSuffixes() noexcept
 	const char **extensions = libvgmstream_get_extensions(&size);
 
 	for (int i = 0; i < size; i++)
-		suffixes.emplace(extensions[i]);
+	{
+		const std::string_view ext{extensions[i]};
+		std::string lower;
+		std::string upper;
+		lower.reserve(ext.size());
+		upper.reserve(ext.size());
+		for (const char ch : ext) {
+			lower.push_back(ToLowerASCII(ch));
+			upper.push_back(ToUpperASCII(ch));
+		}
+
+		suffixes.emplace(ext);
+		suffixes.emplace(lower);
+		suffixes.emplace(upper);
+	}
 
 	return suffixes;
 }
