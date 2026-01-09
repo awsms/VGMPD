@@ -51,6 +51,7 @@ static constexpr unsigned LAZYUSF_CHANNELS = 2;
 static constexpr unsigned LAZYUSF_BUFFER_FRAMES = 1024;
 static constexpr unsigned LAZYUSF_BUFFER_SAMPLES =
 	LAZYUSF_BUFFER_FRAMES * LAZYUSF_CHANNELS;
+static constexpr unsigned LAZYUSF_DEFAULT_LENGTH_MS = 3 * 60 * 1000;
 static constexpr unsigned LAZYUSF_SEEK_CHUNK_FRAMES = 8192;
 static constexpr unsigned LAZYUSF_SEEK_CHUNK_SAMPLES =
 	LAZYUSF_SEEK_CHUNK_FRAMES * LAZYUSF_CHANNELS;
@@ -305,10 +306,11 @@ LazyUSF_openfile(usf_state_t *usf, Path path_fs, LazyUSFTagHolder &holder)
 	usf_set_fifo_full(usf, holder.enable_fifo_full);
 	usf_set_hle_audio(usf, enable_hle);
 
-	if (holder.handler != nullptr && holder.handler->WantDuration() &&
-	    holder.length_ms > 0) {
-		holder.handler->OnDuration(
-			SongTime::FromMS(holder.length_ms + holder.fade_ms));
+	if (holder.handler != nullptr && holder.handler->WantDuration()) {
+		const unsigned duration_ms = holder.length_ms > 0
+			? holder.length_ms + holder.fade_ms
+			: LAZYUSF_DEFAULT_LENGTH_MS;
+		holder.handler->OnDuration(SongTime::FromMS(duration_ms));
 	}
 
 	return true;
@@ -436,21 +438,23 @@ lazyusf_file_decode(DecoderClient &client, Path path_fs)
 		return;
 	}
 
-	const bool has_length = holder.length_ms > 0;
-	const int64_t length_frames = has_length
-		? static_cast<int64_t>(holder.length_ms) * render_rate / 1000
-		: 0;
+	const bool has_metadata_length = holder.length_ms > 0;
+	const unsigned effective_length_ms = has_metadata_length
+		? holder.length_ms
+		: LAZYUSF_DEFAULT_LENGTH_MS;
+	const bool has_effective_length = effective_length_ms > 0;
+	const int64_t length_frames =
+		static_cast<int64_t>(effective_length_ms) * render_rate / 1000;
 	const int64_t fade_total = static_cast<int64_t>(holder.fade_ms) *
 		render_rate / 1000;
 
-	const SignedSongTime song_len = has_length
-		? SignedSongTime::FromMS(holder.length_ms + holder.fade_ms)
-		: SignedSongTime::Negative();
+	const SignedSongTime song_len = SignedSongTime::FromMS(
+		static_cast<int64_t>(effective_length_ms) + holder.fade_ms);
 
 	const auto audio_format = CheckAudioFormat(render_rate,
 		SampleFormat::S16, LAZYUSF_CHANNELS);
 
-	client.Ready(audio_format, has_length, song_len);
+	client.Ready(audio_format, true, song_len);
 
 	DecoderCommand cmd = DecoderCommand::NONE;
 	int16_t buf[LAZYUSF_BUFFER_SAMPLES];
@@ -467,7 +471,7 @@ lazyusf_file_decode(DecoderClient &client, Path path_fs)
 			return;
 		}
 
-		if (has_length) {
+		if (has_effective_length) {
 			const int64_t remaining_before = song_remaining;
 
 			if (song_remaining > 0)
@@ -488,7 +492,7 @@ lazyusf_file_decode(DecoderClient &client, Path path_fs)
 
 		cmd = client.SubmitAudio(nullptr, std::span{buf}, 0);
 
-		if (has_length && song_remaining <= 0 && fade_remaining <= 0)
+		if (song_remaining <= 0 && fade_remaining <= 0)
 			break;
 
 		if (cmd == DecoderCommand::SEEK) {
@@ -499,7 +503,7 @@ lazyusf_file_decode(DecoderClient &client, Path path_fs)
 			song_remaining = length_frames;
 			fade_remaining = fade_total;
 
-			if (has_length) {
+		if (has_effective_length) {
 				/* We keep original semantics: seek can extend into fade. */
 				const int64_t target_remaining = length_frames - seek_frames;
 
