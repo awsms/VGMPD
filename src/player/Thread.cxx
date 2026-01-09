@@ -593,6 +593,15 @@ Player::CheckDecoderStartup(std::unique_lock<Mutex> &lock) noexcept
 		play_audio_format = dc.out_audio_format;
 		decoder_starting = false;
 
+		if (dc.total_time.IsPositive() &&
+		    dc.song->GetTag().duration.IsNegative()) {
+			auto tag = dc.song->GetTag();
+			tag.duration = dc.total_time;
+			dc.song->SetTag(std::move(tag));
+			pc.LockSetTaggedSong(*dc.song);
+			pc.listener.OnPlayerTagModified();
+		}
+
 		const size_t buffer_before_play_size =
 			play_audio_format.TimeToSize(buffer_before_play_duration);
 		buffer_before_play =
