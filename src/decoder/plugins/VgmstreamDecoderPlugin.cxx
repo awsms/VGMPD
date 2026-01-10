@@ -189,16 +189,10 @@ VgmstreamFileDecode(DecoderClient &client, Path path_fs)
 	const AudioFormat audio_format = VgmstreamGetFormat(lib);
 	assert(audio_format.IsValid());
 
-	const auto play_samples = lib->format->play_samples;
-	const auto sample_rate = lib->format->sample_rate;
-	const bool has_duration = play_samples > 0 && sample_rate > 0;
-	SignedSongTime song_time = SignedSongTime::Negative();
-	if (has_duration) {
-		song_time = SongTime::FromScale<uint64_t>(
-			static_cast<uint64_t>(play_samples), sample_rate);
-	}
+	auto song_time =
+		SongTime::FromScale(lib->format->play_samples, lib->format->sample_rate);
 
-	client.Ready(audio_format, has_duration, song_time);
+	client.Ready(audio_format, true, song_time);
 
 	auto rgi = ReplayGainInfo::Undefined();
 
@@ -267,12 +261,8 @@ VgmstreamScanSong(Path path, int subsong, TagHandler &handler) noexcept
 
 	AtScopeExit(lib) { libvgmstream_free(lib); };
 
-	const auto play_samples = lib->format->play_samples;
-	const auto sample_rate = lib->format->sample_rate;
-	if (play_samples > 0 && sample_rate > 0) {
-		handler.OnDuration(SongTime::FromScale<uint64_t>(
-			static_cast<uint64_t>(play_samples), sample_rate));
-	}
+	handler.OnDuration(
+		SongTime::FromScale(lib->format->play_samples, lib->format->sample_rate));
 	handler.OnAudioFormat(VgmstreamGetFormat(lib));
 
 	VgmstreamScanTags(path, lib, handler, nullptr);
