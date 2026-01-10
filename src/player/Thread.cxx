@@ -600,7 +600,8 @@ Player::CheckDecoderStartup(std::unique_lock<Mutex> &lock) noexcept
 			auto tag = dc.song->GetTag();
 			tag.duration = dc.total_time;
 			dc.song->SetTag(std::move(tag));
-			pc.LockSetTaggedSong(*dc.song);
+			pc.tagged_song = std::make_unique<DetachedSong>(*dc.song);
+			const ScopeUnlock unlock(pc.mutex);
 			pc.listener.OnPlayerTagModified();
 		}
 
