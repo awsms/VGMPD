@@ -57,7 +57,6 @@ const ConfigTemplate config_param_templates[] = {
 	{ "gapless_mp3_playback", false, true },
 	{ "auto_update" },
 	{ "auto_update_depth" },
-	{ "art_names" },
 	{ "mixramp_analyzer" },
 };
 

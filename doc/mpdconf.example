@@ -128,12 +128,6 @@
 #
 #auto_update_depth "3"
 #
-# Regular expression (PCRE2 syntax) for matching external album art file names
-# in the same directory as a song. If this option is omitted, MPD looks for
-# "cover.png", "cover.jpg" and "cover.webp".
-#
-#art_names "^\\.?(album|cover|folder|front).*\\.(gif|jpeg|jpg|png|webp)$"
-#
 ###############################################################################
 
 
