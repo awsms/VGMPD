@@ -16,6 +16,7 @@
 #include "TagAny.hxx"
 #include "db/Features.hxx" // for ENABLE_DATABASE
 #include "db/Interface.hxx"
+#include "config/PartitionConfig.hxx"
 #include "song/LightSong.hxx"
 #include "storage/StorageInterface.hxx"
 #include "fs/AllocatedPath.hxx"
@@ -33,6 +34,7 @@
 #include <algorithm>
 #include <cassert>
 #include <array>
+#include <vector>
 
 using std::string_view_literals::operator""sv;
 
@@ -136,7 +138,10 @@ handle_read_comments(Client &client, Request args, Response &r)
  * opened file or #nullptr on failure.
  */
 static InputStreamPtr
-find_stream_art(std::string_view directory, Mutex &mutex)
+find_stream_art_by_name(std::string_view directory,
+			Storage *storage,
+			std::string_view name,
+			Mutex &mutex)
 {
 	static constexpr auto art_names = std::array {
 		"cover.png",
@@ -148,19 +153,127 @@ find_stream_art(std::string_view directory, Mutex &mutex)
 	for(const auto name : art_names) {
 		std::string art_file = PathTraitsUTF8::Build(directory, name);
 
+	if (storage != nullptr)
+		return storage->OpenFile(art_file, mutex);
+
+	return InputStream::OpenReady(art_file, mutex);
+}
+
+template<typename T>
+static InputStreamPtr
+find_stream_art_by_names(std::string_view directory,
+			 Storage *storage,
+			 const T &names,
+			 Mutex &mutex)
+{
+	for (const auto &name : names) {
 		try {
-			return InputStream::OpenReady(art_file, mutex);
+			return find_stream_art_by_name(directory, storage,
+						       std::string_view{name},
+						       mutex);
 		} catch (...) {
 			auto e = std::current_exception();
 			if (!IsFileNotFound(e))
 				LogError(e);
 		}
 	}
+
 	return nullptr;
+}
+
+static bool
+find_local_art_names(std::string_view directory,
+		     const RegexPointer &art_names_regex,
+		     std::vector<std::string> &names) noexcept
+{
+	const auto path_fs = AllocatedPath::FromUTF8(directory);
+	if (path_fs.IsNull())
+		return false;
+
+	try {
+		DirectoryReader reader(path_fs);
+		while (reader.ReadEntry()) {
+			const Path name_fs = reader.GetEntry();
+			if (SkipNameFS(name_fs.c_str()) || skip_path(name_fs))
+				continue;
+
+			std::string name_utf8 = name_fs.ToUTF8();
+			if (name_utf8.empty())
+				continue;
+
+			if (art_names_regex.Match(name_utf8))
+				names.emplace_back(std::move(name_utf8));
+		}
+	} catch (...) {
+		LogError(std::current_exception());
+		return false;
+	}
+
+	return true;
+}
+
+static bool
+find_storage_art_names(Storage &storage,
+		       std::string_view directory,
+		       const RegexPointer &art_names_regex,
+		       std::vector<std::string> &names) noexcept
+{
+	try {
+		auto reader = storage.OpenDirectory(directory);
+		while (const char *name = reader->Read()) {
+			if (PathTraitsUTF8::IsSpecialFilename(name) ||
+			    std::string_view{name}.find('\n') != std::string_view::npos)
+				continue;
+
+			if (art_names_regex.Match(name))
+				names.emplace_back(name);
+		}
+	} catch (...) {
+		LogError(std::current_exception());
+		return false;
+	}
+
+	return true;
+}
+
+static InputStreamPtr
+find_stream_art(std::string_view directory,
+		Storage *storage,
+		const UniqueRegex *art_names_regex,
+		Mutex &mutex)
+{
+	static constexpr auto default_art_names = std::array {
+		"cover.png",
+		"cover.jpg",
+		"cover.webp",
+	};
+
+	if (art_names_regex != nullptr) {
+		std::vector<std::string> regex_art_names;
+		const bool listed = storage != nullptr
+			? find_storage_art_names(*storage,
+						 directory,
+						 *art_names_regex,
+						 regex_art_names)
+			: find_local_art_names(directory,
+					       *art_names_regex,
+					       regex_art_names);
+
+		if (listed) {
+			std::sort(regex_art_names.begin(), regex_art_names.end());
+			return find_stream_art_by_names(directory, storage,
+							regex_art_names, mutex);
+		}
+	}
+
+	return find_stream_art_by_names(directory, storage,
+					default_art_names, mutex);
 }
 
 static CommandResult
 read_stream_art(Response &r, const std::string_view art_directory,
+		Storage *storage,
+		const UniqueRegex *art_names_regex,
 		size_t offset)
 {
 	// TODO: eliminate this const_cast
@@ -169,9 +282,9 @@ read_stream_art(Response &r, const std::string_view art_directory,
 	/* to avoid repeating the search for each chunk request by the
 	   same client, use the #LastInputStream class to cache the
 	   #InputStream instance */
-	auto *is = client.last_album_art.Open(art_directory, [](std::string_view directory,
-								Mutex &mutex){
-		return find_stream_art(directory, mutex);
+	auto *is = client.last_album_art.Open(art_directory, [storage, art_names_regex](std::string_view directory,
+											  Mutex &mutex){
+		return find_stream_art(directory, storage, art_names_regex, mutex);
 	});
 
 	if (is == nullptr) {
@@ -264,19 +377,20 @@ try {
 static CommandResult
 read_db_art(Client &client, Response &r, std::string_view uri, const uint64_t offset)
 {
-	const Storage *storage = client.GetStorage();
+	Storage *storage = client.GetStorage();
 	if (storage == nullptr) {
 		r.Error(ACK_ERROR_NO_EXIST, "No database");
 		return CommandResult::ERROR;
 	}
-	std::string uri2 = storage->MapUTF8(uri);
 
 	std::string_view directory_uri =
 		RealDirectoryOfSong(client,
 				    uri,
-				    PathTraitsUTF8::GetParent(uri2.c_str()));
+				    PathTraitsUTF8::GetParent(uri));
 
-	return read_stream_art(r, directory_uri, offset);
+	return read_stream_art(r, directory_uri, storage,
+			       client.GetPartition().config.art_names_regex.get(),
+			       offset);
 }
 #endif
 
@@ -299,6 +413,8 @@ handle_album_art(Client &client, Request args, Response &r)
 	case LocatedUri::Type::PATH:
 		return read_stream_art(r,
 				       PathTraitsUTF8::GetParent(located_uri.canonical_uri),
+				       nullptr,
+				       client.GetPartition().config.art_names_regex.get(),
 				       offset);
 
 	case LocatedUri::Type::RELATIVE:

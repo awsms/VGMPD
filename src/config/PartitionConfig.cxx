@@ -3,6 +3,9 @@
 
 #include "PartitionConfig.hxx"
 #include "Data.hxx"
+#include "lib/fmt/RuntimeError.hxx"
+
+#include <exception>
 
 PartitionConfig::PartitionConfig(const ConfigData &config)
 	:player(config)
@@ -17,4 +20,16 @@ PartitionConfig::PartitionConfig(const ConfigData &config)
 		   worse, an integer overflow because the allocation
 		   size is larger than SIZE_MAX) */
 		queue.max_length = QueueConfig::MAX_MAX_LENGTH;
+
+	if (const char *pattern = config.GetString(ConfigOption::ART_NAMES);
+	    pattern != nullptr && *pattern != 0) {
+		auto regex = std::make_shared<UniqueRegex>();
+		try {
+			regex->Compile(pattern);
+		} catch (...) {
+			std::throw_with_nested(FmtRuntimeError("Failed to compile \"art_names\" regex"));
+		}
+
+		art_names_regex = std::move(regex);
+	}
 }

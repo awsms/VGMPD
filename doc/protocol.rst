@@ -1112,8 +1112,10 @@ The music database
     art image file at offset ``OFFSET``.
 
     This is currently implemented by searching the directory the file
-    resides in for a file called :file:`cover.png`, :file:`cover.jpg`,
-    :file:`cover.jxl`, or :file:`cover.webp`.
+    resides in for matching image file names. By default, MPD checks
+    :file:`cover.png`, :file:`cover.jpg`, :file:`cover.jxl`,
+    and :file:`cover.webp`. The :file:`mpd.conf` setting ``art_names``
+    can override this with a regular expression.
 
     Returns the file size and actual number
     of bytes read at the requested offset, followed
